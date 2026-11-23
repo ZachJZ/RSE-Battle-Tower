@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Battle Tower Matchups</title>
+<meta name="description" content="Gen 3 Battle Tower damage and speed checker for Pokémon Ruby and Sapphire, Level 50.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working column — header with Latios's numbers, filter bar, tabbed tables that scroll sideways on phones */
+:root{
+  --bg:#f3f5fa; --panel:#ffffff; --fg:#141a2b; --muted:#5b6479; --line:#dde2ee;
+  --accent:#2f56c9; --accent-soft:#e4eafb; --red:#c23a3a; --red-soft:#fae6e6;
+  --amber:#a86a08; --amber-soft:#fbf0da; --green:#23794a; --green-soft:#e1f3e8;
+  --display:"Chakra Petch", "Trebuchet MS", sans-serif;
+  --body:"IBM Plex Sans", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1320; --panel:#171c2c; --fg:#e7eaf3; --muted:#9aa3b8; --line:#2a3148;
+  --accent:#86a4ff; --accent-soft:#1f2a4d; --red:#ff8b8b; --red-soft:#3a1d22;
+  --amber:#f2bf62; --amber-soft:#3a2e15; --green:#7fd3a2; --green-soft:#16332a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1320; --panel:#171c2c; --fg:#e7eaf3; --muted:#9aa3b8; --line:#2a3148;
+  --accent:#86a4ff; --accent-soft:#1f2a4d; --red:#ff8b8b; --red-soft:#3a1d22;
+  --amber:#f2bf62; --amber-soft:#3a2e15; --green:#7fd3a2; --green-soft:#16332a; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:grid;gap:20px}
+header{display:grid;gap:10px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,4vw,2.4rem);letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:0;max-width:70ch}
+.statline{display:flex;flex-wrap:wrap;gap:8px}
+.stat{font-family:var(--mono);font-size:.82rem;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-variant-numeric:tabular-nums}
+.stat b{font-family:var(--display);font-weight:600;color:var(--accent);margin-right:6px;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.chk{display:flex;align-items:center;gap:6px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.controls label{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+select,input[type=search]{font:inherit;font-size:.9rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+input[type=search]{flex:1 1 180px;min-width:0}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font-family:var(--display);font-weight:600;font-size:.95rem;letter-spacing:.02em;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.tabs .n{font-family:var(--mono);font-size:.78rem;opacity:.8;margin-left:6px}
+section{display:grid;gap:12px}
+section h2{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:0}
+.note{color:var(--muted);font-size:.88rem;margin:0;max-width:85ch}
+.tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:760px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);cursor:pointer;white-space:nowrap}
+th:hover{color:var(--fg)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mon{font-weight:600}
+.set{font-family:var(--mono);color:var(--muted);font-size:.75rem;margin-left:4px}
+.moves{color:var(--muted);font-size:.8rem}
+.pill{display:inline-block;font-family:var(--mono);font-size:.76rem;border-radius:999px;padding:1px 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.p-red{background:var(--red-soft);color:var(--red)}
+.p-amber{background:var(--amber-soft);color:var(--amber)}
+.p-green{background:var(--green-soft);color:var(--green)}
+.p-blue{background:var(--accent-soft);color:var(--accent)}
+.tag{display:inline-block;white-space:nowrap;font-size:.74rem;border:1px solid var(--line);border-radius:5px;padding:0 6px;margin:1px 3px 1px 0;color:var(--muted)}
+.tag.warn{border-color:var(--amber);color:var(--amber)}
+.tag.bad{border-color:var(--red);color:var(--red)}
+.empty{padding:16px;color:var(--muted)}
+footer{color:var(--muted);font-size:.82rem;display:grid;gap:6px;max-width:90ch}
+footer p{margin:0}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.chk{display:flex;align-items:center;gap:6px;cursor:pointer}
+.titlebar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.gear{display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-weight:600;font-size:.95rem;padding:8px 14px}
+.gear svg{flex:none}
+.gear[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.boost{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:3px 4px 3px 10px;background:var(--bg)}
+.blabel{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.step{font:inherit;font-weight:600;width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;line-height:1}
+.step:disabled{opacity:.4;cursor:default}
+#bval{font-family:var(--mono);font-weight:500;min-width:2.2ch;text-align:center;color:var(--accent)}
+.teamgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;min-width:0}
+.row2{display:grid;grid-template-columns:1.4fr 1fr;gap:8px}
+.row3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.moves4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fld{display:grid;gap:3px;min-width:0}
+.fld label{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.fld input,.fld select{font:inherit;font-size:.88rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 7px;width:100%;min-width:0;box-sizing:border-box}
+.types{display:flex;flex-wrap:wrap;gap:4px}
+table.stats{min-width:0;font-size:.8rem;width:100%;table-layout:fixed}
+table.stats th,table.stats td{padding:3px 2px;text-align:center;border-bottom:0;position:static;cursor:default}
+table.stats tbody th{text-align:left;font-size:.68rem}
+table.stats input{width:100%;box-sizing:border-box;font:inherit;font-family:var(--mono);font-size:.8rem;text-align:center;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:4px 0;-moz-appearance:textfield}
+table.stats input::-webkit-inner-spin-button{display:none}
+table.stats tr.tot td{font-family:var(--mono);font-weight:500;color:var(--accent)}
+.hint{margin:0;font-size:.8rem;color:var(--muted)}
+.hint.bad{color:var(--red)}
+.teamactions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-size:.88rem;font-weight:500;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.io{display:flex;gap:6px;flex:1 1 260px;min-width:0}
+.io input{flex:1;min-width:0;font:inherit;font-size:.85rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.msg{font-size:.85rem;color:var(--amber)}
+footer a{color:var(--accent)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.btn.gear[aria-expanded=true]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.modes{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.seg{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:3px}
+.seg .glabel{padding:0 8px 0 6px}
+.seg button{font:inherit;font-size:.88rem;font-weight:500;background:transparent;color:var(--muted);border:0;border-radius:6px;padding:6px 11px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--panel)}
+.glabel{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.help{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px}
+.help-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.help h2{font-family:var(--display);font-size:1.2rem;margin:0}
+.help ol{margin:0;padding-left:1.3em;display:grid;gap:8px;max-width:80ch}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:12px}
+.mc-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mc-head h2{font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--muted)}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.switch .track{width:36px;height:20px;border-radius:999px;background:var(--line);position:relative;transition:background .15s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked + .track{background:var(--accent)}
+.switch input:checked + .track::after{transform:translateX(16px)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+#mc-body{display:grid;gap:12px}
+.mc-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mc-pick input{flex:1 1 220px;min-width:0;font:inherit;font-size:.95rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+.mc-out{display:grid;gap:12px}
+.mc-left{display:grid;gap:8px}
+.mc-count{font-size:.95rem}
+.mc-count b{font-family:var(--mono);color:var(--accent)}
+.linkbtn{font:inherit;font-size:.85rem;background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0 0 0 6px}
+.chipgroup{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.chipgroup .glabel{min-width:7.5em}
+.chipb{font:inherit;font-size:.8rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chipb .cnt{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.chipb[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.chipb[aria-pressed=true] .cnt{color:var(--panel)}
+.chipb:disabled{opacity:.35;cursor:default}
+.mc-vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.vcard{border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:7px;align-content:start;background:var(--bg)}
+.vcard.best{border-color:var(--green)}
+.vcard.active .vhead .mon::after{content:" · on the field";font-weight:400;color:var(--muted);font-size:.8rem}
+.vhead{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.vcard dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.84rem}
+.vcard dt{color:var(--muted)}
+.vcard dd{margin:0}
+.mc-sets summary{cursor:pointer;font-size:.88rem;color:var(--accent)}
+.mc-sets .tablebox{margin-top:8px}
+table.mini{min-width:640px;font-size:.8rem}
+table.mini th{position:static;cursor:default}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="topbar">
+    <button type="button" id="helpbtn" class="btn gear" aria-expanded="false" aria-controls="help"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span>How to use this</span></button>
+    <button type="button" id="tab-team" class="btn gear" aria-pressed="false"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Adjust Team</span></button>
+  </div>
+  <h1>Battle Tower Matchups</h1>
+  <p class="sub">Every Battle Tower set in Pokémon <span id="sub-game">Ruby &amp; Sapphire</span>, checked against your team. Round 8 is battles 50–56, where the ribbons are won.</p>
+  <div class="modes">
+    <div class="seg" role="group" aria-label="Game"><span class="glabel">Game</span><button type="button" data-game="rs" aria-pressed="true">Ruby / Sapphire</button><button type="button" data-game="em" aria-pressed="false">Emerald</button></div>
+    <div class="seg" role="group" aria-label="Tower mode"><span class="glabel">Tower</span><button type="button" data-mode="50" aria-pressed="true">Level 50</button><button type="button" data-mode="open" aria-pressed="false" id="mode-hi">Level 100</button></div>
+    <span class="hint" id="opp-lv"></span>
+  </div>
+  <div class="statline" id="statline"></div>
+</header>
+
+<section id="help" class="help" hidden aria-labelledby="help-h">
+  <div class="help-head"><h2 id="help-h">How to use this</h2><button type="button" class="btn" id="help-close">Close</button></div>
+  <ol>
+    <li><b>Set up your team.</b> Click <b>Adjust Team</b> at the top right. For each slot, type the species, then set its level, nature, ability, item, four moves, IVs and EVs. Your summary screen shows all of these. Everything saves in your browser.</li>
+    <li><b>Pick the game and tower.</b> Choose Ruby / Sapphire or Emerald, then Level 50 or the high-level mode. The two games use different opponent lists.</li>
+    <li><b>Pick the round and who's on the field.</b> Round 1 is battles 1–7, round 8 is battles 50–56. Opponents get stronger IVs each round, so the round matters. "On the field" switches every table to that Pokémon.</li>
+    <li><b>Use the matchup card in battle.</b> Type the Pokémon you're facing. The card lists every set it could be and shows how each of your three handles it. "Best answer" marks the one that wins the damage race most safely: who KOs whom first, counting hits needed on the worst-case rolls and who moves first.</li>
+    <li><b>Narrow it down as you learn more.</b> When the opponent uses a move or reveals its item, click that chip. Sets that don't match drop out and the numbers update. "Turn order" uses who moved first. Click a chip again to undo it.</li>
+    <li><b>Track your boosts.</b> If your Pokémon has a setup move like Calm Mind, use the − / + counter so the damage matches your current boosts.</li>
+    <li><b>Read the tabs.</b> Faster lists what moves before you. Can OHKO you lists what can KO you from full. You can OHKO and Survives a hit split every set into what you KO in one hit and what you don't. Safe to set up lists what's safe to boost on. Tick "Assume critical hits" to plan for the worst luck.</li>
+  </ol>
+  <p class="hint">Damage percentages are the lowest to highest damage roll, as a share of the target's HP. Opponents are shown at the highest IVs they can have in the round you picked.</p>
+</section>
+
+<div class="controls">
+  <label for="mon">On the field</label>
+  <select id="mon"></select>
+  <label for="round">Round</label>
+  <select id="round">
+    <option value="0">All rounds</option>
+    <option value="1">Round 1 (1–7)</option><option value="2">Round 2 (8–14)</option><option value="3">Round 3 (15–21)</option>
+    <option value="4">Round 4 (22–28)</option><option value="5">Round 5 (29–35)</option><option value="6">Round 6 (36–42)</option>
+    <option value="7">Round 7 (43–49)</option><option value="8">Round 8+ (50–56 and on)</option>
+  </select>
+  <span class="boost" id="boostctl" hidden><span class="blabel" id="blabel">Calm Mind used</span><button type="button" class="step" id="bminus" aria-label="One fewer">−</button><output id="bval" aria-live="polite">+0</output><button type="button" class="step" id="bplus" aria-label="One more">+</button></span>
+  <label class="chk" for="crit"><input type="checkbox" id="crit"> Assume critical hits</label>
+  <input type="search" id="q" placeholder="Filter by Pokémon, item or move">
+</div>
+
+<section class="mcard" id="mcard" aria-labelledby="mc-h">
+  <div class="mc-head">
+    <h2 id="mc-h">Matchup card</h2>
+    <label class="switch"><input type="checkbox" id="mc-switch" role="switch" checked><span class="track" aria-hidden="true"></span><span class="sw-label">Show</span></label>
+  </div>
+  <div id="mc-body">
+    <div class="mc-pick"><label for="mc-sp" class="glabel">Opponent</label><input id="mc-sp" list="dl-opp" autocomplete="off" placeholder="Type the Pokémon you're facing"><button type="button" class="btn" id="mc-clear">Clear</button></div>
+    <div id="mc-out" class="mc-out"></div>
+  </div>
+</section>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="tab-fast" aria-selected="true" data-v="fast"><span id="l-fast">Faster</span><span class="n" id="n-fast"></span></button>
+  <button role="tab" id="tab-ko" aria-selected="false" data-v="ko">Can OHKO you<span class="n" id="n-ko"></span></button>
+  <button role="tab" id="tab-easy" aria-selected="false" data-v="easy">You can OHKO<span class="n" id="n-easy"></span></button>
+  <button role="tab" id="tab-bulk" aria-selected="false" data-v="bulk">Survives a hit<span class="n" id="n-bulk"></span></button>
+  <button role="tab" id="tab-safe" aria-selected="false" data-v="safe"><span id="l-safe">Safe to set up</span><span class="n" id="n-safe"></span></button>
+</div>
+
+<section id="v-fast">
+  <h2 id="h-fast"></h2>
+  <p class="note" id="p-fast"></p>
+  <div class="tablebox"><table id="t-fast"></table></div>
+  <h2>Can move first under conditions</h2>
+  <p class="note" id="p-cond"></p>
+  <div class="tablebox"><table id="t-cond"></table></div>
+</section>
+
+<section id="v-ko" hidden>
+  <h2 id="h-ko"></h2>
+  <p class="note" id="p-ko"></p>
+  <div class="tablebox"><table id="t-ko"></table></div>
+</section>
+
+<section id="v-easy" hidden>
+  <h2 id="h-easy"></h2>
+  <p class="note" id="p-easy"></p>
+  <div class="tablebox"><table id="t-easy"></table></div>
+</section>
+
+<section id="v-bulk" hidden>
+  <h2 id="h-bulk"></h2>
+  <p class="note" id="p-bulk"></p>
+  <div class="tablebox"><table id="t-bulk"></table></div>
+</section>
+
+<section id="v-safe" hidden>
+  <h2 id="h-safe"></h2>
+  <p class="note" id="p-safe"></p>
+  <div class="tablebox"><table id="t-safe"></table></div>
+</section>
+
+<section id="v-team" hidden>
+  <h2>Your team</h2>
+  <p class="note">Changes apply to every tab as you type and are saved in this browser. Level 50 mode only allows Pokémon at level 50 or below. The Battle Tower doesn't allow two of the same species or two of the same held item, and bans Mew, Mewtwo, Lugia, Ho-Oh, Celebi, Kyogre, Groudon, Rayquaza, Jirachi and Deoxys.</p>
+  <div class="teamgrid" id="teamgrid"></div>
+  <div class="teamactions">
+    <button type="button" id="reset" class="btn">Reset to default team</button>
+    <button type="button" id="copy" class="btn">Copy team code</button>
+    <span class="io"><input type="text" id="paste" placeholder="Paste a team code here"><button type="button" id="load" class="btn">Load</button></span>
+    <span id="msg" class="msg" role="status"></span>
+  </div>
+</section>
+
+<datalist id="dl-species"></datalist>
+<datalist id="dl-moves"></datalist>
+<datalist id="dl-opp"></datalist>
+
+<footer>
+  <p>Opponent IVs follow the game code. In Ruby / Sapphire every opponent in a round shares one IV, from 6 in round 1 up to 31 from round 7. Each set uses the highest IV it can have in the round you picked (or in any round, with All rounds). Round 8 and later always uses IV 31. Opponents with two possible abilities are given whichever one hurts you more.</p>
+  <p>Damage uses the Gen 3 formula with damage rolls from 85% to 100%. In Gen 3, Fire, Water, Grass, Electric, Ice, Psychic, Dragon and Dark moves are special; every other type is physical. Counted: Choice Band, type-boosting items, Intimidate, Levitate, Thick Fat, Huge Power, Hustle, the Absorb abilities, Wonder Guard, Sturdy against OHKO moves, multi-hit moves, Hidden Power from your IVs, and Explosion halving Defense. Not counted: Focus Band, Light Screen and Reflect, BrightPowder, weather, Leftovers recovery, and secondary effects like stat drops.</p>
+  <p>Emerald uses the Battle Frontier list: each trainer has their own pool of sets, IVs go from 3 in round 1 to 31 from round 7, and Salon Maiden Anabel appears at battle 35 (Silver) and battle 70 and every 35 after (Gold). Some legendary, Dragonite and Tyranitar sets only appear in Open Level. Singles only; doubles and multi battles aren't covered.</p>
+  <p>Sources: <a href="https://bulbapedia.bulbagarden.net/wiki/List_of_Battle_Tower_Pok%C3%A9mon_in_Pok%C3%A9mon_Ruby_and_Sapphire">Bulbapedia's R/S Battle Tower Pokémon list</a> (CC BY-NC-SA 2.5), and the <a href="https://github.com/pret/pokeruby">pret/pokeruby</a> and <a href="https://github.com/pret/pokeemerald">pret/pokeemerald</a> decompilations for stats, moves, Emerald's sets and how opponent IVs scale. Pokémon is © Nintendo, Creatures Inc. and GAME FREAK inc. This is an unofficial fan tool.</p>
+</footer>
+</div>
+<script src="tower-data.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
